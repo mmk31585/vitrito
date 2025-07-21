@@ -7,6 +7,8 @@ import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
+import { useLocale } from "next-intl";
+import { useRouter } from "next/navigation";
 import { ThemeToggler } from "./ThemeToggler";
 
 const NAV_LINKS = [
@@ -17,6 +19,8 @@ const NAV_LINKS = [
 ];
 
 export default function Navbar() {
+  const router = useRouter();
+  const locale = useLocale();
   const pathname = usePathname();
   const [show, setShow] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
@@ -93,6 +97,16 @@ export default function Navbar() {
           {/* Left Menu (Desktop) */}
           <div className="hidden md:flex items-center gap-3">
             <ThemeToggler />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                const newLocale = locale === "en" ? "fa" : "en";
+                router.replace(`/${newLocale}${pathname}`);
+              }}
+            >
+              {locale === "en" ? "فارسی" : "English"}
+            </Button>
             {session ? (
               <>
                 <Link href="/dashboard">

@@ -1,7 +1,11 @@
-import type { NextConfig } from "next";
+import nextIntl from 'next-intl/plugin';
 
-const nextConfig: NextConfig = {
-  /* config options here */
+const nextConfig = {
+  reactStrictMode: true,
+  // سایر تنظیمات دلخواه شما
 };
 
-export default nextConfig;
+export default nextIntl({
+  ...nextConfig,
+  localeConfig: './src/i18n/request.tsx',
+});

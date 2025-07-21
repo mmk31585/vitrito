@@ -1,9 +1,11 @@
 // src/app/layout.tsx
+import { NextIntlClientProvider } from "next-intl";
+import { getMessages } from "next-intl/server";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import localFont from "next/font/local";
-import "../styles/globals.css";
+import { Geist, Geist_Mono } from "next/font/google";
 
+import "../styles/globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -16,11 +18,7 @@ const vazir = localFont({
       weight: "400",
       style: "normal",
     },
-    {
-      path: "../fonts/Vazirmatn-Bold.woff2",
-      weight: "700",
-      style: "normal",
-    },
+    { path: "../fonts/Vazirmatn-Bold.woff2", weight: "700", style: "normal" },
   ],
   variable: "--font-vazir",
   display: "swap",
@@ -44,32 +42,53 @@ export const metadata: Metadata = {
   icons: { icon: "/favicon.ico" },
 };
 
-export default function RootLayout({
+// زبان‌های پشتیبانی شده و زبان پیش‌فرض
+const SUPPORTED_LOCALES = ["fa", "en"];
+const DEFAULT_LOCALE = "fa";
+
+export default async function RootLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params?: { locale?: string }; // توجه: optional کردیم
 }) {
+  // اگر locale موجود نیست یا پشتیبانی نشده، پیش‌فرض را بگذار
+  let locale = params?.locale;
+  if (!locale || !SUPPORTED_LOCALES.includes(locale)) {
+    locale = DEFAULT_LOCALE;
+  }
+
+  let messages;
+  try {
+    messages = await getMessages(locale);
+  } catch (e) {
+    // اگر باز هم خطا داشت، پیام زبان پیش‌فرض را بارگذاری کن
+    messages = await getMessages(DEFAULT_LOCALE);
+  }
+
   return (
     <html
-      lang="fa"
-      dir="rtl"
-      suppressHydrationWarning
+      lang={locale}
+      dir={locale === "fa" ? "rtl" : "ltr"}
       className={`${vazir.variable} ${geistSans.variable} ${geistMono.variable} scroll-smooth`}
     >
       <body className="flex flex-col min-h-screen bg-background text-foreground antialiased">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <Navbar />
-          <main className="flex-grow container mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
-            {children}
-          </main>
-          <Footer />
-          <Toaster />
-        </ThemeProvider>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <Navbar />
+            <main className="flex-grow container mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
+              {children}
+            </main>
+            <Footer />
+            <Toaster />
+          </ThemeProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

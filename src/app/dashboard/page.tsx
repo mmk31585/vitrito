@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import { Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
@@ -44,6 +45,7 @@ type ShowcaseItem = {
 };
 
 export default function Dashboard() {
+  const t = useTranslations("Dashboard");
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [showcaseItems, setShowcaseItems] = useState<ShowcaseItem[]>([]);
@@ -53,6 +55,8 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [profileViews, setProfileViews] = useState(0);
+  const [itemView, setItemViews] = useState(0);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -95,6 +99,31 @@ export default function Dashboard() {
           setError(showcaseError.message);
         } else {
           setShowcaseItems(showcaseData);
+        }
+
+        const { count: profileViewCount, error: profileViewError } =
+          await supabase
+            .from("analytics")
+            .select("*", { count: "exact", head: true })
+            .eq("profile_id", session.user.id)
+            .eq("event_type", "profile_view");
+
+        if (profileViewError) {
+          setError(profileViewError.message);
+        } else {
+          setProfileViews(profileViewCount || 0);
+        }
+
+        const { count: itemViewCount, error: itemViewError } = await supabase
+          .from("analytics")
+          .select("*", { count: "exact", head: true })
+          .eq("profile_id", session.user.id)
+          .eq("event_type", "item_view");
+
+        if (itemViewError) {
+          setError(itemViewError.message);
+        } else {
+          setItemViews(itemViewCount || 0);
         }
 
         setLoading(false);
@@ -175,9 +204,21 @@ export default function Dashboard() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold">Dashboard</h1>
+      <h1 className="text-4xl font-bold">{t("title")}</h1>
+
+      <section className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="border p-4 rounded-lg">
+          <h2 className="text-2xl font-bold">{t("profile_views")}</h2>
+          <p className="text-4xl font-bold">{profileViews}</p>
+        </div>
+        <div className="border p-4 rounded-lg">
+          <h2 className="text-2xl font-bold">{t("item_views")}</h2>
+          <p className="text-4xl font-bold">{itemView}</p>
+        </div>
+      </section>
+
       <section className="mt-8">
-        <h2 className="text-2xl font-bold">Edit Profile</h2>
+        <h2 className="text-2xl font-bold">{t("edit_profile")}</h2>
         <form onSubmit={handleUpdateProfile} className="mt-4 space-y-4">
           <div>
             <Label htmlFor="avatar">Avatar</Label>
@@ -185,6 +226,17 @@ export default function Dashboard() {
               id="avatar"
               type="file"
               onChange={(e) => setAvatarFile(e.target.files?.[0] || null)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="professional_title">Professional Title</Label>
+            <Input
+              id="professional_title"
+              type="text"
+              value={profile.professional_title}
+              onChange={(e) =>
+                setProfile({ ...profile, professional_title: e.target.value })
+              }
             />
           </div>
           <div>
@@ -276,28 +328,62 @@ export default function Dashboard() {
               }
             />
           </div>
+          <div>
+            <Label htmlFor="custom_url">Custom URL</Label>
+            <Input
+              id="custom_url"
+              type="text"
+              value={profile.custom_url}
+              onChange={(e) =>
+                setProfile({ ...profile, custom_url: e.target.value })
+              }
+            />
+          </div>
           <Button type="submit" disabled={updatingProfile}>
             {updatingProfile && (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             )}
-            Save Changes
+            {t("save_changes")}
           </Button>
         </form>
       </section>
 
       <section className="mt-8">
+        <h2 className="text-2xl font-bold">Push Notifications</h2>
+        <Button
+          onClick={async () => {
+            const permission = await Notification.requestPermission();
+            if (permission === "granted") {
+              const registration = await navigator.serviceWorker.register(
+                "/sw.js"
+              );
+              const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey:
+                  "BGrfKVTQsbR5AJ0-MOGJC1juGpXtoeRLOP_x_f2ly468spaYFgG-lNabDKqv7GYNt8ESh9Ea3B57aDcHQeP35sY",
+              });
+              await supabase.from("push_subscriptions").insert({
+                user_id: session?.user.id,
+                subscription: subscription,
+              });
+            }
+          }}
+        >
+          Enable Push Notifications
+        </Button>
+      </section>
+
+      <section className="mt-8">
         <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold">Showcase Items</h2>
+          <h2 className="text-2xl font-bold">{t("showcase_items")}</h2>
           <Dialog>
             <DialogTrigger asChild>
-              <Button>Add Item</Button>
+              <Button>{t("add_item")}</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Add Showcase Item</DialogTitle>
-                <DialogDescription>
-                  Fill in the details to add a new item to your showcase.
-                </DialogDescription>
+                <DialogTitle>{t("add_showcase_item")}</DialogTitle>
+                <DialogDescription>{t("fill_details")}</DialogDescription>
               </DialogHeader>
               <form
                 onSubmit={async (e) => {
@@ -309,32 +395,34 @@ export default function Dashboard() {
                   const description = formData.get("description") as string;
                   const category = formData.get("category") as string;
                   const price = formData.get("price") as string;
-                  const imageFile = formData.get("image") as File;
+                  const imageFiles = formData.getAll("image") as File[];
+                  const isDigital = formData.get("is_digital") === "on";
+                  const digitalFile = formData.get("digital_file") as File;
 
-                  let image_url = "";
-                  if (imageFile) {
+                  let digital_file_url = "";
+                  if (isDigital && digitalFile) {
                     const { data, error } = await supabase.storage
-                      .from("showcase-images")
+                      .from("digital-files")
                       .upload(
-                        `${session.user.id}/${imageFile.name}`,
-                        imageFile,
+                        `${session.user.id}/${digitalFile.name}`,
+                        digitalFile,
                         {
                           cacheControl: "3600",
                           upsert: true,
                         }
                       );
                     if (error) {
-                      setError(error.message);
+                      toast.error(error.message);
                       setAddingItem(false);
                       return;
                     }
                     const { data: publicUrlData } = supabase.storage
-                      .from("showcase-images")
+                      .from("digital-files")
                       .getPublicUrl(data.path);
-                    image_url = publicUrlData.publicUrl;
+                    digital_file_url = publicUrlData.publicUrl;
                   }
 
-                  const { error } = await supabase
+                  const { data: itemData, error: itemError } = await supabase
                     .from("showcase_items")
                     .insert({
                       profile_id: session.user.id,
@@ -342,54 +430,105 @@ export default function Dashboard() {
                       description,
                       category,
                       price: price ? parseFloat(price) : undefined,
-                      image_url,
+                      is_digital: isDigital,
+                      digital_file_url: digital_file_url,
+                    })
+                    .select()
+                    .single();
+
+                  if (itemError) {
+                    toast.error(itemError.message);
+                    setAddingItem(false);
+                    return;
+                  }
+
+                  if (imageFiles.length > 0) {
+                    const imageUploads = imageFiles.map(async (file) => {
+                      const { data, error } = await supabase.storage
+                        .from("showcase-images")
+                        .upload(
+                          `${session.user.id}/${itemData.id}/${file.name}`,
+                          file,
+                          {
+                            cacheControl: "3600",
+                            upsert: true,
+                          }
+                        );
+                      if (error) {
+                        toast.error(error.message);
+                        return null;
+                      }
+                      const { data: publicUrlData } = supabase.storage
+                        .from("showcase-images")
+                        .getPublicUrl(data.path);
+                      return {
+                        showcase_item_id: itemData.id,
+                        image_url: publicUrlData.publicUrl,
+                      };
                     });
 
-                  setAddingItem(false);
+                    const uploadedImages = (
+                      await Promise.all(imageUploads)
+                    ).filter(Boolean);
 
-                  if (error) {
-                    toast.error(error.message);
-                  } else {
-                    toast.success("Showcase item added successfully!");
-                    const { data: showcaseData, error: showcaseError } =
-                      await supabase
-                        .from("showcase_items")
-                        .select("*")
-                        .eq("profile_id", session.user.id);
-                    if (showcaseError) {
-                      setError(showcaseError.message);
-                    } else {
-                      setShowcaseItems(showcaseData);
+                    if (uploadedImages.length > 0) {
+                      const { error } = await supabase
+                        .from("showcase_item_images")
+                        .insert(uploadedImages);
+                      if (error) {
+                        toast.error(error.message);
+                      }
                     }
+                  }
+
+                  setAddingItem(false);
+                  toast.success("Showcase item added successfully!");
+                  const { data: showcaseData, error: showcaseError } =
+                    await supabase
+                      .from("showcase_items")
+                      .select("*")
+                      .eq("profile_id", session.user.id);
+                  if (showcaseError) {
+                    setError(showcaseError.message);
+                  } else {
+                    setShowcaseItems(showcaseData);
                   }
                 }}
                 className="space-y-4"
               >
                 <div>
-                  <Label htmlFor="title">Title</Label>
+                  <Label htmlFor="title">{t("title_label")}</Label>
                   <Input id="title" name="title" type="text" required />
                 </div>
                 <div>
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description">{t("description_label")}</Label>
                   <Textarea id="description" name="description" />
                 </div>
                 <div>
-                  <Label htmlFor="category">Category</Label>
+                  <Label htmlFor="category">{t("category_label")}</Label>
                   <Input id="category" name="category" type="text" />
                 </div>
                 <div>
-                  <Label htmlFor="price">Price</Label>
+                  <Label htmlFor="price">{t("price_label")}</Label>
                   <Input id="price" name="price" type="number" step="0.01" />
                 </div>
                 <div>
-                  <Label htmlFor="image">Image</Label>
-                  <Input id="image" name="image" type="file" />
+                  <Label htmlFor="image">{t("images_label")}</Label>
+                  <Input id="image" name="image" type="file" multiple />
+                </div>
+                <div>
+                  <Label htmlFor="is_digital">Is Digital</Label>
+                  <Input id="is_digital" name="is_digital" type="checkbox" />
+                </div>
+                <div>
+                  <Label htmlFor="digital_file">Digital File</Label>
+                  <Input id="digital_file" name="digital_file" type="file" />
                 </div>
                 <Button type="submit" disabled={addingItem}>
                   {addingItem && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
-                  Add Item
+                  {t("add_item")}
                 </Button>
               </form>
             </DialogContent>

@@ -1,0 +1,18 @@
+{
+  "Dashboard": {
+    "title": "داشبورد",
+    "edit_profile": "ویرایش پروفایل",
+    "showcase_items": "ویترین",
+    "add_item": "افزودن آیتم",
+    "profile_views": "بازدید پروفایل",
+    "item_views": "بازدید آیتم‌ها",
+    "save_changes": "ذخیره تغییرات",
+    "add_showcase_item": "افزودن آیتم به ویترین",
+    "fill_details": "اطلاعات آیتم جدید را برای افزودن به ویترین وارد کنید.",
+    "title_label": "عنوان",
+    "description_label": "توضیحات",
+    "category_label": "دسته",
+    "price_label": "قیمت",
+    "images_label": "تصاویر"
+  }
+}
