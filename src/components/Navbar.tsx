@@ -4,7 +4,10 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
-import { Button } from "@heroui/button"; // یا از "@/components/ui/button" اگر hero-ui نصب نیست
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/lib/supabase";
+import { Session } from "@supabase/supabase-js";
+import { ThemeToggler } from "./ThemeToggler";
 
 const NAV_LINKS = [
   { href: "/#features", label: "امکانات" },
@@ -18,8 +21,25 @@ export default function Navbar() {
   const [show, setShow] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
 
-  const hiddenPaths = ["/login", "/register"];
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -31,6 +51,8 @@ export default function Navbar() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, [lastScrollY]);
+
+  const hiddenPaths = ["/login", "/signup"];
 
   if (hiddenPaths.includes(pathname)) return null;
 
@@ -70,16 +92,37 @@ export default function Navbar() {
 
           {/* Left Menu (Desktop) */}
           <div className="hidden md:flex items-center gap-3">
-            <Link href="/login">
-              <Button variant="bordered" size="sm" className="text-sm">
-                ورود
-              </Button>
-            </Link>
-            <Link href="/signup">
-              <Button size="sm" className="text-sm">
-                ساخت ویترین
-              </Button>
-            </Link>
+            <ThemeToggler />
+            {session ? (
+              <>
+                <Link href="/dashboard">
+                  <Button variant="ghost" size="sm" className="text-sm">
+                    Dashboard
+                  </Button>
+                </Link>
+                <Button
+                  onClick={handleSignOut}
+                  variant="destructive"
+                  size="sm"
+                  className="text-sm"
+                >
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link href="/login">
+                  <Button variant="ghost" size="sm" className="text-sm">
+                    ورود
+                  </Button>
+                </Link>
+                <Link href="/signup">
+                  <Button size="sm" className="text-sm">
+                    ساخت ویترین
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Toggle */}
@@ -109,25 +152,53 @@ export default function Navbar() {
               </Link>
             ))}
             <div className="flex gap-3 pt-2">
-              <Link href="/login" className="flex-1">
-                <Button
-                  variant="bordered"
-                  size="sm"
-                  className="w-full text-sm"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  ورود
-                </Button>
-              </Link>
-              <Link href="/signup" className="flex-1">
-                <Button
-                  size="sm"
-                  className="w-full text-sm"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  ساخت ویترین
-                </Button>
-              </Link>
+              {session ? (
+                <>
+                  <Link href="/dashboard" className="flex-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-sm"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Dashboard
+                    </Button>
+                  </Link>
+                  <Button
+                    onClick={() => {
+                      handleSignOut();
+                      setMobileMenuOpen(false);
+                    }}
+                    variant="destructive"
+                    size="sm"
+                    className="flex-1 text-sm"
+                  >
+                    Sign Out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link href="/login" className="flex-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-sm"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      ورود
+                    </Button>
+                  </Link>
+                  <Link href="/signup" className="flex-1">
+                    <Button
+                      size="sm"
+                      className="w-full text-sm"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      ساخت ویترین
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         )}

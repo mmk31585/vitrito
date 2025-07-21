@@ -6,6 +6,8 @@ import "../styles/globals.css";
 
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { ThemeProvider } from "@/components/ThemeProvider";
+import { Toaster } from "react-hot-toast";
 
 const vazir = localFont({
   src: [
@@ -51,14 +53,23 @@ export default function RootLayout({
     <html
       lang="fa"
       dir="rtl"
+      suppressHydrationWarning
       className={`${vazir.variable} ${geistSans.variable} ${geistMono.variable} scroll-smooth`}
     >
       <body className="flex flex-col min-h-screen bg-background text-foreground antialiased">
-        <Navbar />
-        <main className="flex-grow container mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
-          {children}
-        </main>
-        <Footer />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <Navbar />
+          <main className="flex-grow container mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
+            {children}
+          </main>
+          <Footer />
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );
