@@ -8,6 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2, Upload } from "lucide-react";
+import toast from "react-hot-toast";
 
 interface SocialLink {
   platform: string;
@@ -16,6 +19,7 @@ interface SocialLink {
 
 interface ProfileFormData {
   full_name: string;
+  username: string;
   avatar_url: string | null;
   cover_image_url: string | null;
   job_category: string;
@@ -27,6 +31,7 @@ export default function EditProfile() {
   const { session, loading: authLoading, protectRoute } = useAuth();
   const [formData, setFormData] = useState<ProfileFormData>({
     full_name: "",
+    username: "",
     avatar_url: null,
     cover_image_url: null,
     job_category: "",
@@ -35,35 +40,24 @@ export default function EditProfile() {
   });
 
   const [loading, setLoading] = useState(false);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [uploadingCover, setUploadingCover] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
-  const [message, setMessage] = useState<{
-    type: "error" | "success";
-    text: string;
-  } | null>(null);
 
   useEffect(() => {
     protectRoute();
 
     if (session) {
-      // بارگذاری اطلاعات اولیه کاربر
       async function fetchUser() {
         setLoading(true);
         const { data: user, error } = await supabase
           .from("profiles")
-          .select(
-            "full_name, avatar_url, cover_image_url, job_category, description, instagram, whatsapp, website"
-          )
+          .select("*")
           .eq("id", session.user.id)
           .single();
 
         if (error) {
-          setMessage({
-            type: "error",
-            text: "بارگذاری اطلاعات با خطا مواجه شد.",
-          });
+          toast.error("Failed to load profile data.");
           setLoading(false);
           return;
         }
@@ -71,12 +65,13 @@ export default function EditProfile() {
         if (user) {
           const socialLinks = user.social_links
             ? Object.entries(user.social_links).map(([platform, url]) => ({
-                platform,
-                url,
+                platform: platform as string,
+                url: url as string,
               }))
             : [];
           setFormData({
             full_name: user.full_name ?? "",
+            username: user.username ?? "",
             avatar_url: user.avatar_url,
             cover_image_url: user.cover_image_url,
             job_category: user.job_category ?? "",
@@ -90,16 +85,19 @@ export default function EditProfile() {
     }
   }, [session, authLoading, protectRoute]);
 
-  // آپلود فایل به Supabase Storage
-  async function uploadImage(file: File, folder: string) {
+  async function uploadImage(
+    file: File,
+    folder: "avatars" | "covers"
+  ): Promise<string | null> {
     if (!session) return null;
     try {
+      setUploading(true);
       const fileExt = file.name.split(".").pop();
       const fileName = `${session.user.id}-${Date.now()}.${fileExt}`;
       const filePath = `${folder}/${fileName}`;
 
       const { error } = await supabase.storage
-        .from("avatars")
+        .from(folder)
         .upload(filePath, file, {
           cacheControl: "3600",
           upsert: true,
@@ -107,38 +105,34 @@ export default function EditProfile() {
 
       if (error) throw error;
 
-      const publicUrl = supabase.storage.from("avatars").getPublicUrl(filePath)
-        .data.publicUrl;
-      return publicUrl;
+      const { data } = supabase.storage.from(folder).getPublicUrl(filePath);
+      return data.publicUrl;
     } catch {
-      setMessage({ type: "error", text: "خطا در آپلود تصویر" });
+      toast.error("Image upload failed.");
       return null;
+    } finally {
+      setUploading(false);
     }
   }
 
-  // هندل آپلود آواتار
-  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleImageChange(
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: "avatar" | "cover"
+  ) {
     if (!e.target.files?.length) return;
     const file = e.target.files[0];
-    setAvatarPreview(URL.createObjectURL(file));
-    setUploadingAvatar(true);
-    const url = await uploadImage(file, "avatars");
-    if (url) setFormData((prev) => ({ ...prev, avatar_url: url }));
-    setUploadingAvatar(false);
+    const previewSetter = type === "avatar" ? setAvatarPreview : setCoverPreview;
+    previewSetter(URL.createObjectURL(file));
+
+    const url = await uploadImage(file, type === "avatar" ? "avatars" : "covers");
+    if (url) {
+      setFormData((prev) => ({
+        ...prev,
+        [type === "avatar" ? "avatar_url" : "cover_image_url"]: url,
+      }));
+    }
   }
 
-  // هندل آپلود کاور
-  async function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
-    if (!e.target.files?.length) return;
-    const file = e.target.files[0];
-    setCoverPreview(URL.createObjectURL(file));
-    setUploadingCover(true);
-    const url = await uploadImage(file, "covers");
-    if (url) setFormData((prev) => ({ ...prev, cover_image_url: url }));
-    setUploadingCover(false);
-  }
-
-  // هندل تغییر ورودی‌ها
   function handleInputChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) {
@@ -146,12 +140,10 @@ export default function EditProfile() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   }
 
-  // ذخیره‌سازی فرم در Supabase
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!session) return;
     setLoading(true);
-    setMessage(null);
 
     const socialLinksObject = formData.social_links.reduce(
       (obj, item) => ({ ...obj, [item.platform]: item.url }),
@@ -162,6 +154,7 @@ export default function EditProfile() {
       .from("profiles")
       .update({
         full_name: formData.full_name,
+        username: formData.username,
         avatar_url: formData.avatar_url,
         cover_image_url: formData.cover_image_url,
         job_category: formData.job_category,
@@ -171,193 +164,192 @@ export default function EditProfile() {
       .eq("id", session.user.id);
 
     if (error) {
-      setMessage({ type: "error", text: "خطا در ذخیره اطلاعات" });
+      toast.error("Failed to save profile.");
     } else {
-      setMessage({ type: "success", text: "اطلاعات با موفقیت ذخیره شد!" });
+      toast.success("Profile saved successfully!");
     }
     setLoading(false);
   }
 
   return (
-    <div className="max-w-xl mx-auto p-4">
-      <h2 className="text-2xl font-bold mb-6 text-center">ویرایش پروفایل</h2>
+    <div className="max-w-4xl mx-auto p-4">
+      <h2 className="text-3xl font-bold mb-6">Edit Profile</h2>
 
-      {message && (
-        <p
-          className={`mb-4 text-center ${
-            message.type === "success" ? "text-green-600" : "text-red-600"
-          }`}
-        >
-          {message.text}
-        </p>
-      )}
-
-      {loading && (
-        <p className="text-center mb-4 text-gray-500">در حال بارگذاری...</p>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* آواتار */}
-        <label className="block">
-          <span className="block mb-2 font-semibold">آواتار</span>
-          <div className="flex items-center gap-4">
-            {avatarPreview ? (
-              <Image
-                src={avatarPreview}
-                alt="Avatar Preview"
-                width={80}
-                height={80}
-                className="rounded-full border"
-              />
-            ) : formData.avatar_url ? (
-              <Image
-                src={formData.avatar_url}
-                alt="Avatar Preview"
-                width={80}
-                height={80}
-                className="rounded-full border"
-              />
-            ) : (
-              <div className="w-20 h-20 bg-gray-300 rounded-full border" />
-            )}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleAvatarChange}
-              disabled={uploadingAvatar}
-            />
-            {uploadingAvatar && <span>در حال آپلود...</span>}
-          </div>
-        </label>
-
-        {/* کاور */}
-        <label className="block">
-          <span className="block mb-2 font-semibold">کاور</span>
-          <div className="flex items-center gap-4">
-            {coverPreview ? (
-              <Image
-                src={coverPreview}
-                alt="Cover Preview"
-                width={120}
-                height={60}
-                className="rounded-md border object-cover"
-              />
-            ) : formData.cover_image_url ? (
-              <Image
-                src={formData.cover_image_url}
-                alt="Cover Preview"
-                width={120}
-                height={60}
-                className="rounded-md border object-cover"
-              />
-            ) : (
-              <div className="w-32 h-16 bg-gray-300 rounded-md border" />
-            )}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleCoverChange}
-              disabled={uploadingCover}
-            />
-            {uploadingCover && <span>در حال آپلود...</span>}
-          </div>
-        </label>
-
-        {/* نام کامل */}
-        <div className="grid w-full max-w-sm items-center gap-1.5">
-          <Label htmlFor="full_name">نام کامل</Label>
-          <Input
-            id="full_name"
-            name="full_name"
-            value={formData.full_name}
-            onChange={handleInputChange}
-            required
-            placeholder="نام و نام خانوادگی"
-          />
-        </div>
-
-        {/* دسته‌بندی شغلی */}
-        <div className="grid w-full max-w-sm items-center gap-1.5">
-          <Label htmlFor="job_category">دسته‌بندی شغلی</Label>
-          <Input
-            id="job_category"
-            name="job_category"
-            value={formData.job_category}
-            onChange={handleInputChange}
-            placeholder="مثلاً: طراح گرافیک، برنامه‌نویس"
-          />
-        </div>
-
-        {/* توضیحات */}
-        <div className="grid w-full gap-1.5">
-          <Label htmlFor="description">درباره من</Label>
-          <Textarea
-            id="description"
-            name="description"
-            value={formData.description}
-            onChange={handleInputChange}
-            placeholder="کمی درباره خودتان بنویسید..."
-            rows={4}
-          />
-        </div>
-
-        {/* Social Links */}
-        <div>
-          <Label>Social Links</Label>
-          {formData.social_links.map((link, index) => (
-            <div key={index} className="flex items-center gap-2 mt-2">
-              <Input
-                value={link.platform}
-                onChange={(e) => {
-                  const newLinks = [...formData.social_links];
-                  newLinks[index].platform = e.target.value;
-                  setFormData({ ...formData, social_links: newLinks });
-                }}
-                placeholder="Platform (e.g., Instagram)"
-              />
-              <Input
-                value={link.url}
-                onChange={(e) => {
-                  const newLinks = [...formData.social_links];
-                  newLinks[index].url = e.target.value;
-                  setFormData({ ...formData, social_links: newLinks });
-                }}
-                placeholder="URL"
-              />
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => {
-                  const newLinks = formData.social_links.filter(
-                    (_, i) => i !== index
-                  );
-                  setFormData({ ...formData, social_links: newLinks });
-                }}
-              >
-                Remove
-              </Button>
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Display Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center gap-6">
+              <div className="relative">
+                <Image
+                  src={
+                    avatarPreview ||
+                    formData.avatar_url ||
+                    "/default-avatar.png"
+                  }
+                  alt="Avatar"
+                  width={100}
+                  height={100}
+                  className="rounded-full border object-cover"
+                />
+                <Label
+                  htmlFor="avatar-upload"
+                  className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-2 cursor-pointer hover:bg-primary/90"
+                >
+                  <Upload className="h-4 w-4" />
+                </Label>
+                <Input
+                  id="avatar-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => handleImageChange(e, "avatar")}
+                  disabled={uploading}
+                />
+              </div>
+              <div className="flex-1">
+                <Label htmlFor="cover-upload">Cover Image</Label>
+                <div className="mt-2 border rounded-lg aspect-video relative">
+                  <Image
+                    src={
+                      coverPreview ||
+                      formData.cover_image_url ||
+                      "/default-cover.png"
+                    }
+                    alt="Cover"
+                    layout="fill"
+                    objectFit="cover"
+                    className="rounded-lg"
+                  />
+                  <Label
+                    htmlFor="cover-upload"
+                    className="absolute inset-0 bg-black/30 flex items-center justify-center text-white opacity-0 hover:opacity-100 cursor-pointer transition-opacity"
+                  >
+                    <Upload className="h-6 w-6" />
+                  </Label>
+                  <Input
+                    id="cover-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleImageChange(e, "cover")}
+                    disabled={uploading}
+                  />
+                </div>
+              </div>
             </div>
-          ))}
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-2"
-            onClick={() =>
-              setFormData({
-                ...formData,
-                social_links: [
-                  ...formData.social_links,
-                  { platform: "", url: "" },
-                ],
-              })
-            }
-          >
-            Add Social Link
-          </Button>
-        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <Label htmlFor="full_name">Full Name</Label>
+                <Input
+                  id="full_name"
+                  name="full_name"
+                  value={formData.full_name}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="job_category">Job Category</Label>
+              <Input
+                id="job_category"
+                name="job_category"
+                value={formData.job_category}
+                onChange={handleInputChange}
+                placeholder="e.g., Graphic Designer, Developer"
+              />
+            </div>
+            <div>
+              <Label htmlFor="description">About Me</Label>
+              <Textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                placeholder="Tell us a little about yourself..."
+                rows={4}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-        <Button type="submit" className="w-full" disabled={loading}>
-          ذخیره تغییرات
+        <Card>
+          <CardHeader>
+            <CardTitle>Social Links</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {formData.social_links.map((link, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  value={link.platform}
+                  onChange={(e) => {
+                    const newLinks = [...formData.social_links];
+                    newLinks[index].platform = e.target.value;
+                    setFormData({ ...formData, social_links: newLinks });
+                  }}
+                  placeholder="Platform (e.g., Instagram)"
+                />
+                <Input
+                  value={link.url}
+                  onChange={(e) => {
+                    const newLinks = [...formData.social_links];
+                    newLinks[index].url = e.target.value;
+                    setFormData({ ...formData, social_links: newLinks });
+                  }}
+                  placeholder="URL"
+                />
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    const newLinks = formData.social_links.filter(
+                      (_, i) => i !== index
+                    );
+                    setFormData({ ...formData, social_links: newLinks });
+                  }}
+                >
+                  Remove
+                </Button>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                setFormData({
+                  ...formData,
+                  social_links: [
+                    ...formData.social_links,
+                    { platform: "", url: "" },
+                  ],
+                })
+              }
+            >
+              Add Social Link
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={loading || uploading}
+        >
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Save Changes
         </Button>
       </form>
     </div>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
+import toast from "react-hot-toast";
 
 const FOOTER_LINKS = [
   { href: "/about", label: "درباره ما" },
@@ -31,7 +32,6 @@ const SOCIAL_LINKS = [
 export default function Footer() {
   const pathname = usePathname();
   const [email, setEmail] = useState("");
-  const [subscribed, setSubscribed] = useState(false);
 
   const hiddenPaths = ["/login", "/register"];
   if (hiddenPaths.includes(pathname)) return null;
@@ -39,20 +39,16 @@ export default function Footer() {
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
-    setSubscribed(true);
+    toast.success("Thanks for subscribing!");
     setEmail("");
-    // Here you can add a fetch/axios call to send the email
   };
 
   return (
     <footer className="bg-muted/40 text-muted-foreground">
       <div className="container mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 py-12 px-4 sm:px-6">
-        {/* About and Contact Info */}
         <div>
-          <h2 className="text-2xl font-bold text-primary mb-3">
-            ویتریتو
-          </h2>
-          <p className="leading-relaxed text-sm md:text-base">
+          <h2 className="text-2xl font-bold text-primary mb-3">ویتریتو</h2>
+          <p className="leading-relaxed text-sm">
             ویتریتو به شما امکان می‌دهد در چند دقیقه ویترین دیجیتال خود را
             بسازید و حرفه‌ای‌تر دیده شوید.
           </p>
@@ -70,10 +66,9 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Important Links and Social Media */}
         <div>
           <h3 className="text-xl font-semibold mb-4">لینک‌های مهم</h3>
-          <ul className="space-y-3 text-sm md:text-base">
+          <ul className="space-y-3 text-sm">
             {FOOTER_LINKS.map(({ href, label }) => (
               <li key={href}>
                 <Link href={href} className="hover:text-primary transition">
@@ -101,31 +96,24 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Newsletter Subscription */}
         <div>
           <h3 className="text-xl font-semibold mb-4">عضویت در خبرنامه</h3>
-          {subscribed ? (
-            <p className="text-green-600 dark:text-green-400 font-medium">
-              ممنون از عضویت شما! ایمیل شما با موفقیت ثبت شد.
-            </p>
-          ) : (
-            <form onSubmit={handleSubscribe} className="flex flex-col gap-4">
-              <div className="grid w-full max-w-sm items-center gap-1.5">
-                <Label htmlFor="email-subscribe">ایمیل</Label>
-                <Input
-                  type="email"
-                  id="email-subscribe"
-                  placeholder="ایمیل خود را وارد کنید"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full">
-                عضویت
-              </Button>
-            </form>
-          )}
+          <form onSubmit={handleSubscribe} className="flex flex-col gap-4">
+            <div className="grid w-full max-w-sm items-center gap-1.5">
+              <Label htmlFor="email-subscribe">ایمیل</Label>
+              <Input
+                type="email"
+                id="email-subscribe"
+                placeholder="ایمیل خود را وارد کنید"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full">
+              عضویت
+            </Button>
+          </form>
         </div>
       </div>
 

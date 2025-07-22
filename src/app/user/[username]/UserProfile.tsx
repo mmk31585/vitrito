@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Share2 } from "lucide-react";
+import { Share2, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import Link from "next/link";
 import { Carousel } from "@/components/Carousel";
@@ -19,6 +19,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
+type Profile = {
   id: string;
   username: string;
   full_name: string;
@@ -127,13 +129,18 @@ export default function UserProfile({ username }: { username: string }) {
     setFilteredShowcaseItems(items);
   }, [searchTitle, filterCategory, minPrice, maxPrice, showcaseItems]);
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
-  if (!profile) return <div>User not found</div>;
+  if (loading)
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  if (error) return <div className="text-red-500 text-center mt-8">Error: {error}</div>;
+  if (!profile) return <div className="text-center mt-8">User not found</div>;
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="relative h-64 w-full rounded-lg bg-gray-200">
+      <div className="relative h-64 w-full rounded-lg bg-muted">
         {profile.cover_image_url && (
           <Image
             src={profile.cover_image_url}
@@ -155,7 +162,9 @@ export default function UserProfile({ username }: { username: string }) {
       </div>
 
       <div className="mt-24 text-center">
-        <h1 className="text-5xl font-bold tracking-tight">{profile.full_name}</h1>
+        <h1 className="text-5xl font-bold tracking-tight">
+          {profile.full_name}
+        </h1>
         <p className="text-xl text-muted-foreground">@{profile.username}</p>
         {profile.professional_title && (
           <p className="text-2xl font-semibold mt-2 text-primary">
@@ -169,7 +178,7 @@ export default function UserProfile({ username }: { username: string }) {
         <Link href={`/chat?receiver_id=${profile.id}`}>
           <Button size="lg">Message</Button>
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           {profile.social_links.instagram && (
             <a
               href={`https://instagram.com/${profile.social_links.instagram}`}
@@ -203,51 +212,57 @@ export default function UserProfile({ username }: { username: string }) {
         </div>
       </div>
 
-      <section className="mt-8">
-        <h2 className="text-2xl font-bold text-center">Showcase</h2>
-        <div className="mt-4 flex flex-wrap gap-4 justify-center">
+      <section className="mt-12">
+        <h2 className="text-3xl font-bold text-center mb-8">Showcase</h2>
+        <div className="mb-8 flex flex-wrap gap-4 justify-center">
           <Input
             type="text"
             placeholder="Search by title..."
             value={searchTitle}
             onChange={(e) => setSearchTitle(e.target.value)}
+            className="max-w-xs"
           />
           <Input
             type="text"
             placeholder="Filter by category..."
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
+            className="max-w-xs"
           />
           <Input
             type="number"
             placeholder="Min price"
             value={minPrice ?? ""}
             onChange={(e) => setMinPrice(Number(e.target.value))}
+            className="max-w-xs"
           />
           <Input
             type="number"
             placeholder="Max price"
             value={maxPrice ?? ""}
             onChange={(e) => setMaxPrice(Number(e.target.value))}
+            className="max-w-xs"
           />
         </div>
 
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredShowcaseItems.length > 0 ? (
             filteredShowcaseItems.map((item) => (
               <Card key={item.id}>
-                <CardHeader>
+                <CardHeader className="p-0">
                   <Carousel images={item.showcase_item_images} />
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-4">
                   <CardTitle>{item.title}</CardTitle>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground mt-1">
                     {item.category}
                   </p>
                   <p className="mt-2">{item.description}</p>
                 </CardContent>
                 <CardFooter className="flex justify-between items-center">
-                  {item.price && <p className="font-bold">${item.price}</p>}
+                  {item.price && (
+                    <p className="font-bold text-lg">${item.price}</p>
+                  )}
                   <div className="flex items-center gap-2">
                     {item.is_digital && item.digital_file_url && (
                       <a href={item.digital_file_url} download>
@@ -294,14 +309,17 @@ export default function UserProfile({ username }: { username: string }) {
 
                 if (!profile) return;
 
-                const { error } = await supabase.functions.invoke("send-email", {
-                  body: {
-                    name,
-                    email,
-                    message,
-                    profileEmail: profile.contact_email,
-                  },
-                });
+                const { error } = await supabase.functions.invoke(
+                  "send-email",
+                  {
+                    body: {
+                      name,
+                      email,
+                      message,
+                      profileEmail: profile.contact_email,
+                    },
+                  }
+                );
 
                 if (error) {
                   toast.error("Failed to send message.");

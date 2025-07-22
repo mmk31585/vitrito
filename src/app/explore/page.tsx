@@ -11,6 +11,13 @@ import {
 } from "@/components/ui/card";
 import Link from "next/link";
 import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Profile {
   id: string;
@@ -28,6 +35,7 @@ export default function ExplorePage() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [category, setCategory] = useState("");
+  const [categories, setCategories] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchProfiles = async () => {
@@ -39,6 +47,10 @@ export default function ExplorePage() {
       } else {
         setProfiles(data);
         setFilteredProfiles(data);
+        const uniqueCategories = [
+          ...new Set(data.map((p) => p.job_category).filter(Boolean)),
+        ];
+        setCategories(uniqueCategories);
       }
       setLoading(false);
     };
@@ -80,12 +92,23 @@ export default function ExplorePage() {
           onChange={(e) => setSearchTerm(e.target.value)}
           className="max-w-sm"
         />
-        <Input
-          placeholder="Filter by category"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="max-w-sm"
-        />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline">
+              {category ? category : "All Categories"}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={() => setCategory("")}>
+              All Categories
+            </DropdownMenuItem>
+            {categories.map((cat) => (
+              <DropdownMenuItem key={cat} onClick={() => setCategory(cat)}>
+                {cat}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {filteredProfiles.map((profile) => (

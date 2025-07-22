@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
@@ -71,6 +71,7 @@ export default function Navbar() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
+    router.push("/");
   };
 
   const hiddenPaths = ["/login", "/signup"];
@@ -82,15 +83,18 @@ export default function Navbar() {
   };
 
   return (
-    <motion.div
-      className="fixed top-0 left-0 right-0 z-50"
+    <motion.header
+      className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm"
       variants={navBarVariants}
       initial="visible"
       animate={controls}
       transition={{ duration: 0.3 }}
     >
-      <header className="container mx-auto flex items-center justify-between h-16 px-4 sm:px-6">
-        <Link href="/" className="text-xl font-extrabold text-blue-600 dark:text-blue-400 tracking-tight select-none">
+      <div className="container mx-auto flex items-center justify-between h-16 px-4 sm:px-6">
+        <Link
+          href="/"
+          className="text-xl font-extrabold text-primary tracking-tight select-none"
+        >
           ویتریتو
         </Link>
 
@@ -111,50 +115,34 @@ export default function Navbar() {
 
         <div className="hidden md:flex items-center gap-3">
           <ThemeToggler />
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              const newLocale = locale === "en" ? "fa" : "en";
-              router.replace(`/${newLocale}${pathname}`);
-            }}
-          >
-            {locale === "en" ? "فارسی" : "English"}
-          </Button>
           {session ? (
             <>
               <Link href="/dashboard">
-                <Button variant="ghost" size="sm" className="text-sm">
+                <Button variant="ghost" size="sm">
                   Dashboard
                 </Button>
               </Link>
-              <Button
-                onClick={handleSignOut}
-                variant="destructive"
-                size="sm"
-                className="text-sm"
-              >
+              <Button onClick={handleSignOut} variant="destructive" size="sm">
                 Sign Out
               </Button>
             </>
           ) : (
             <>
               <Link href="/login">
-                <Button variant="ghost" size="sm" className="text-sm">
+                <Button variant="ghost" size="sm">
                   ورود
                 </Button>
               </Link>
               <Link href="/signup">
-                <Button size="sm" className="text-sm">
-                  ساخت ویترین
-                </Button>
+                <Button size="sm">ساخت ویترین</Button>
               </Link>
             </>
           )}
         </div>
 
         {/* Mobile Navigation */}
-        <div className="md:hidden">
+        <div className="md:hidden flex items-center gap-2">
+          <ThemeToggler />
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" size="icon">
@@ -203,24 +191,12 @@ export default function Navbar() {
                       </Link>
                     </>
                   )}
-                  <div className="flex justify-between items-center">
-                    <ThemeToggler />
-                    <Button
-                      variant="ghost"
-                      onClick={() => {
-                        const newLocale = locale === "en" ? "fa" : "en";
-                        router.replace(`/${newLocale}${pathname}`);
-                      }}
-                    >
-                      {locale === "en" ? "فارسی" : "English"}
-                    </Button>
-                  </div>
                 </div>
               </div>
             </SheetContent>
           </Sheet>
         </div>
-      </header>
-    </motion.div>
+      </div>
+    </motion.header>
   );
 }

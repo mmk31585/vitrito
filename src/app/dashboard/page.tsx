@@ -14,11 +14,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, ShoppingBag, Bell, Edit } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type Profile = {
   id: string;
@@ -32,6 +33,8 @@ type Profile = {
     linkedin: string;
     telegram: string;
   };
+  professional_title: string;
+  custom_url: string;
 };
 
 type ShowcaseItem = {
@@ -182,186 +185,101 @@ export default function Dashboard() {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return <div className="text-red-500 text-center mt-8">Error: {error}</div>;
   }
 
   if (!profile) {
-    return <div>Please complete your profile.</div>;
+    return (
+      <div className="text-center mt-8">
+        Please complete your profile.
+        <Button onClick={() => (window.location.href = "/dashboard/profile")}>
+          Go to Profile
+        </Button>
+      </div>
+    );
   }
 
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-4xl font-bold">{t("title")}</h1>
 
-      <section className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="border p-4 rounded-lg">
-          <h2 className="text-2xl font-bold">{t("profile_views")}</h2>
-          <p className="text-4xl font-bold">{profileViews}</p>
-        </div>
-        <div className="border p-4 rounded-lg">
-          <h2 className="text-2xl font-bold">{t("item_views")}</h2>
-          <p className="text-4xl font-bold">{itemView}</p>
-        </div>
-      </section>
-
-      <section className="mt-8">
-        <h2 className="text-2xl font-bold">{t("edit_profile")}</h2>
-        <form onSubmit={handleUpdateProfile} className="mt-4 space-y-4">
-          <div>
-            <Label htmlFor="avatar">Avatar</Label>
-            <Input
-              id="avatar"
-              type="file"
-              onChange={(e) => setAvatarFile(e.target.files?.[0] || null)}
-            />
-          </div>
-          <div>
-            <Label htmlFor="professional_title">Professional Title</Label>
-            <Input
-              id="professional_title"
-              type="text"
-              value={profile.professional_title}
-              onChange={(e) =>
-                setProfile({ ...profile, professional_title: e.target.value })
-              }
-            />
-          </div>
-          <div>
-            <Label htmlFor="cover">Cover Image</Label>
-            <Input
-              id="cover"
-              type="file"
-              onChange={(e) => setCoverFile(e.target.files?.[0] || null)}
-            />
-          </div>
-          <div>
-            <Label htmlFor="username">Username</Label>
-            <Input
-              id="username"
-              type="text"
-              value={profile.username}
-              onChange={(e) =>
-                setProfile({ ...profile, username: e.target.value })
-              }
-            />
-          </div>
-          <div>
-            <Label htmlFor="full_name">Full Name</Label>
-            <Input
-              id="full_name"
-              type="text"
-              value={profile.full_name}
-              onChange={(e) =>
-                setProfile({ ...profile, full_name: e.target.value })
-              }
-            />
-          </div>
-          <div>
-            <Label htmlFor="bio">Bio</Label>
-            <Textarea
-              id="bio"
-              value={profile.bio}
-              onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label htmlFor="instagram">Instagram</Label>
-            <Input
-              id="instagram"
-              type="text"
-              value={profile.social_links.instagram}
-              onChange={(e) =>
-                setProfile({
-                  ...profile,
-                  social_links: {
-                    ...profile.social_links,
-                    instagram: e.target.value,
-                  },
-                })
-              }
-            />
-          </div>
-          <div>
-            <Label htmlFor="linkedin">LinkedIn</Label>
-            <Input
-              id="linkedin"
-              type="text"
-              value={profile.social_links.linkedin}
-              onChange={(e) =>
-                setProfile({
-                  ...profile,
-                  social_links: {
-                    ...profile.social_links,
-                    linkedin: e.target.value,
-                  },
-                })
-              }
-            />
-          </div>
-          <div>
-            <Label htmlFor="telegram">Telegram</Label>
-            <Input
-              id="telegram"
-              type="text"
-              value={profile.social_links.telegram}
-              onChange={(e) =>
-                setProfile({
-                  ...profile,
-                  social_links: {
-                    ...profile.social_links,
-                    telegram: e.target.value,
-                  },
-                })
-              }
-            />
-          </div>
-          <div>
-            <Label htmlFor="custom_url">Custom URL</Label>
-            <Input
-              id="custom_url"
-              type="text"
-              value={profile.custom_url}
-              onChange={(e) =>
-                setProfile({ ...profile, custom_url: e.target.value })
-              }
-            />
-          </div>
-          <Button type="submit" disabled={updatingProfile}>
-            {updatingProfile && (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            )}
-            {t("save_changes")}
-          </Button>
-        </form>
-      </section>
-
-      <section className="mt-8">
-        <h2 className="text-2xl font-bold">Push Notifications</h2>
-        <Button
-          onClick={async () => {
-            const permission = await Notification.requestPermission();
-            if (permission === "granted") {
-              const registration = await navigator.serviceWorker.register(
-                "/sw.js"
-              );
-              const subscription = await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey:
-                  "BGrfKVTQsbR5AJ0-MOGJC1juGpXtoeRLOP_x_f2ly468spaYFgG-lNabDKqv7GYNt8ESh9Ea3B57aDcHQeP35sY",
-              });
-              await supabase.from("push_subscriptions").insert({
-                user_id: session?.user.id,
-                subscription: subscription,
-              });
-            }
-          }}
-        >
-          Enable Push Notifications
-        </Button>
+      <section className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              {t("profile_views")}
+            </CardTitle>
+            <Eye className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{profileViews}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              {t("item_views")}
+            </CardTitle>
+            <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{itemView}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Notifications
+            </CardTitle>
+            <Bell className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <Button
+              size="sm"
+              onClick={async () => {
+                const permission = await Notification.requestPermission();
+                if (permission === "granted") {
+                  const registration =
+                    await navigator.serviceWorker.register("/sw.js");
+                  const subscription =
+                    await registration.pushManager.subscribe({
+                      userVisibleOnly: true,
+                      applicationServerKey:
+                        "BGrfKVTQsbR5AJ0-MOGJC1juGpXtoeRLOP_x_f2ly468spaYFgG-lNabDKqv7GYNt8ESh9Ea3B57aDcHQeP35sY",
+                    });
+                  await supabase.from("push_subscriptions").insert({
+                    user_id: session?.user.id,
+                    subscription: subscription,
+                  });
+                }
+              }}
+            >
+              Enable
+            </Button>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Edit Profile</CardTitle>
+            <Edit className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <Button
+              size="sm"
+              onClick={() => (window.location.href = "/dashboard/profile")}
+            >
+              Go to Profile
+            </Button>
+          </CardContent>
+        </Card>
       </section>
 
       <section className="mt-8">
@@ -527,11 +445,15 @@ export default function Dashboard() {
         </div>
         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {showcaseItems.map((item) => (
-            <div key={item.id} className="border p-4 rounded-lg">
-              <h3 className="text-lg font-bold">{item.title}</h3>
-              <p>{item.description}</p>
-              <p>{item.price}</p>
-            </div>
+            <Card key={item.id}>
+              <CardHeader>
+                <CardTitle>{item.title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p>{item.description}</p>
+                <p className="font-bold">{item.price}</p>
+              </CardContent>
+            </Card>
           ))}
         </div>
       </section>
