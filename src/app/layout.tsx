@@ -10,6 +10,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "react-hot-toast";
+import { PageTransition } from "@/components/PageTransition";
 
 const vazir = localFont({
   src: [
@@ -62,7 +63,7 @@ export default async function RootLayout({
   let messages;
   try {
     messages = await getMessages(locale);
-  } catch (e) {
+  } catch {
     // اگر باز هم خطا داشت، پیام زبان پیش‌فرض را بارگذاری کن
     messages = await getMessages(DEFAULT_LOCALE);
   }
@@ -83,7 +84,7 @@ export default async function RootLayout({
           >
             <Navbar />
             <main className="flex-grow container mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
-              {children}
+              <PageTransition>{children}</PageTransition>
             </main>
             <Footer />
             <Toaster />

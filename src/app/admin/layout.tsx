@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import Link from "next/link";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
@@ -8,10 +9,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         <nav className="mt-8">
           <ul>
             <li>
-              <a href="/admin/users">Users</a>
+              <Link href="/admin/users">Users</Link>
             </li>
             <li>
-              <a href="/admin/showcase-items">Showcase Items</a>
+              <Link href="/admin/showcase-items">Showcase Items</Link>
             </li>
           </ul>
         </nav>

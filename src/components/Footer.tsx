@@ -1,9 +1,11 @@
 "use client";
 
-import { Card, Divider, Button, Input } from "@heroui/react";
 import { Instagram, Mail, Phone } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useState } from "react";
 
 const FOOTER_LINKS = [
@@ -26,22 +28,6 @@ const SOCIAL_LINKS = [
   },
 ];
 
-function FooterCard({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <Card
-      className={`bg-white dark:bg-neutral-800 p-6 rounded-2xl shadow-md ${className}`}
-    >
-      {children}
-    </Card>
-  );
-}
-
 export default function Footer() {
   const pathname = usePathname();
   const [email, setEmail] = useState("");
@@ -55,53 +41,50 @@ export default function Footer() {
     if (!email.trim()) return;
     setSubscribed(true);
     setEmail("");
-    // توی اینجا می‌تونی fetch/axios برای ارسال ایمیل قرار بدی
+    // Here you can add a fetch/axios call to send the email
   };
 
   return (
-    <footer className="bg-gray-50 dark:bg-neutral-900 text-gray-700 dark:text-gray-300 py-12 px-6">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10 text-right font-[var(--font-vazir)]">
-        {/* معرفی و اطلاعات تماس */}
-        <FooterCard>
-          <h2 className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-3 select-none">
+    <footer className="bg-muted/40 text-muted-foreground">
+      <div className="container mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 py-12 px-4 sm:px-6">
+        {/* About and Contact Info */}
+        <div>
+          <h2 className="text-2xl font-bold text-primary mb-3">
             ویتریتو
           </h2>
           <p className="leading-relaxed text-sm md:text-base">
             ویتریتو به شما امکان می‌دهد در چند دقیقه ویترین دیجیتال خود را
             بسازید و حرفه‌ای‌تر دیده شوید.
           </p>
-          <div className="flex flex-col gap-3 mt-6 text-gray-600 dark:text-gray-400">
+          <div className="flex flex-col gap-3 mt-6">
             {CONTACT_INFO.map(({ Icon, text, href }) => (
               <a
                 key={text}
                 href={href}
-                className="flex items-center gap-2 hover:text-blue-600 transition"
+                className="flex items-center gap-2 hover:text-primary transition"
               >
                 <Icon size={20} />
                 {text}
               </a>
             ))}
           </div>
-        </FooterCard>
+        </div>
 
-        {/* لینک‌های مهم و شبکه‌های اجتماعی */}
-        <FooterCard>
+        {/* Important Links and Social Media */}
+        <div>
           <h3 className="text-xl font-semibold mb-4">لینک‌های مهم</h3>
           <ul className="space-y-3 text-sm md:text-base">
             {FOOTER_LINKS.map(({ href, label }) => (
               <li key={href}>
-                <Link href={href} className="hover:text-blue-600 transition">
+                <Link href={href} className="hover:text-primary transition">
                   {label}
                 </Link>
               </li>
             ))}
           </ul>
-
-          <Divider className="my-6" />
-
-          <div>
+          <div className="mt-6">
             <h4 className="mb-3 font-semibold text-lg">ما را دنبال کنید</h4>
-            <div className="flex gap-4 text-blue-600 dark:text-blue-400">
+            <div className="flex gap-4 text-primary">
               {SOCIAL_LINKS.map(({ Icon, href, label }) => (
                 <a
                   key={label}
@@ -116,10 +99,10 @@ export default function Footer() {
               ))}
             </div>
           </div>
-        </FooterCard>
+        </div>
 
-        {/* عضویت در خبرنامه */}
-        <FooterCard className="flex flex-col justify-between">
+        {/* Newsletter Subscription */}
+        <div>
           <h3 className="text-xl font-semibold mb-4">عضویت در خبرنامه</h3>
           {subscribed ? (
             <p className="text-green-600 dark:text-green-400 font-medium">
@@ -127,23 +110,27 @@ export default function Footer() {
             </p>
           ) : (
             <form onSubmit={handleSubscribe} className="flex flex-col gap-4">
-              <Input
-                type="email"
-                placeholder="ایمیل خود را وارد کنید"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-              <Button type="submit" variant="solid" className="w-full">
+              <div className="grid w-full max-w-sm items-center gap-1.5">
+                <Label htmlFor="email-subscribe">ایمیل</Label>
+                <Input
+                  type="email"
+                  id="email-subscribe"
+                  placeholder="ایمیل خود را وارد کنید"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full">
                 عضویت
               </Button>
             </form>
           )}
-        </FooterCard>
+        </div>
       </div>
 
-      <div className="mt-10 text-center text-xs text-gray-400 dark:text-gray-600 select-none">
-        © {new Date().getFullYear()} Vitrito. همه حقوق محفوظ است.
+      <div className="border-t border-border py-6 text-center text-xs">
+        <p>© {new Date().getFullYear()} Vitrito. همه حقوق محفوظ است.</p>
       </div>
     </footer>
   );

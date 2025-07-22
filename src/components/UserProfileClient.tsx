@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 type Profile = {
   id: string;
@@ -84,17 +85,21 @@ export default function UserProfileClient({ username }: { username: string }) {
     <div className="container mx-auto px-4 py-8">
       <div className="relative h-64 w-full rounded-lg bg-gray-200">
         {profile.cover_image_url && (
-          <img
+          <Image
             src={profile.cover_image_url}
             alt="Cover"
-            className="h-full w-full object-cover rounded-lg"
+            layout="fill"
+            objectFit="cover"
+            className="rounded-lg"
           />
         )}
         <div className="absolute -bottom-16 left-1/2 -translate-x-1/2">
-          <img
+          <Image
             src={profile.avatar_url}
             alt="Avatar"
-            className="h-32 w-32 rounded-full border-4 border-white"
+            width={128}
+            height={128}
+            className="rounded-full border-4 border-white"
           />
         </div>
       </div>
@@ -140,9 +145,11 @@ export default function UserProfileClient({ username }: { username: string }) {
         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {showcaseItems.map((item) => (
             <div key={item.id} className="border p-4 rounded-lg">
-              <img
+              <Image
                 src={item.image_url}
                 alt={item.title}
+                width={500}
+                height={300}
                 className="h-48 w-full object-cover rounded-lg"
               />
               <h3 className="text-lg font-bold mt-2">{item.title}</h3>

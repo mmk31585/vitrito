@@ -18,6 +18,7 @@ import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 type Profile = {
   id: string;
@@ -46,7 +47,7 @@ type ShowcaseItem = {
 
 export default function Dashboard() {
   const t = useTranslations("Dashboard");
-  const [session, setSession] = useState<Session | null>(null);
+  const { session, loading: authLoading, protectRoute } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [showcaseItems, setShowcaseItems] = useState<ShowcaseItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,18 +60,8 @@ export default function Dashboard() {
   const [itemView, setItemViews] = useState(0);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+    protectRoute();
+  }, [session, authLoading]);
 
   useEffect(() => {
     if (session) {

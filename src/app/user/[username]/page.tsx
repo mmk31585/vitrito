@@ -32,5 +32,5 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 import UserProfileWrapper from "@/components/UserProfileWrapper";
 
 export default function Page({ params }: { params: { username: string } }) {
-  return <UserProfileWrapper />;
+  return <UserProfileWrapper username={params.username} />;
 }

@@ -2,14 +2,28 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import { useLocale } from "next-intl";
-import { useRouter } from "next/navigation";
 import { ThemeToggler } from "./ThemeToggler";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
+  NavigationMenu,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  navigationMenuTriggerStyle,
+} from "@/components/ui/navigation-menu";
+import { motion, useAnimation } from "framer-motion";
 
 const NAV_LINKS = [
   { href: "/#features", label: "امکانات" },
@@ -22,10 +36,9 @@ export default function Navbar() {
   const router = useRouter();
   const locale = useLocale();
   const pathname = usePathname();
-  const [show, setShow] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
+  const [lastScrollY, setLastScrollY] = useState(0);
+  const controls = useAnimation();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -41,182 +54,173 @@ export default function Navbar() {
     return () => subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY > lastScrollY && currentScrollY > 100) {
+        controls.start("hidden");
+      } else {
+        controls.start("visible");
+      }
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [lastScrollY, controls]);
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
   };
 
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      setShow(currentScrollY < lastScrollY || currentScrollY < 50);
-      setLastScrollY(currentScrollY);
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [lastScrollY]);
-
   const hiddenPaths = ["/login", "/signup"];
-
   if (hiddenPaths.includes(pathname)) return null;
 
+  const navBarVariants = {
+    visible: { y: 0, opacity: 1 },
+    hidden: { y: -100, opacity: 0 },
+  };
+
   return (
-    <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-[95%] max-w-6xl">
-      <nav
-        dir="rtl"
-        className={`relative rounded-2xl px-6 py-3 shadow-xl backdrop-blur-md bg-white/90 dark:bg-neutral-900 border border-gray-200 dark:border-gray-700 transition-all duration-300 ${
-          show ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-10"
-        }`}
-      >
-        <div className="flex items-center justify-between">
-          {/* Right Menu (Desktop) */}
-          <div className="hidden md:flex items-center gap-6">
+    <motion.div
+      className="fixed top-0 left-0 right-0 z-50"
+      variants={navBarVariants}
+      initial="visible"
+      animate={controls}
+      transition={{ duration: 0.3 }}
+    >
+      <header className="container mx-auto flex items-center justify-between h-16 px-4 sm:px-6">
+        <Link href="/" className="text-xl font-extrabold text-blue-600 dark:text-blue-400 tracking-tight select-none">
+          ویتریتو
+        </Link>
+
+        {/* Desktop Navigation */}
+        <NavigationMenu className="hidden md:flex">
+          <NavigationMenuList>
             {NAV_LINKS.map(({ href, label }) => (
-              <Link
-                key={href}
-                href={href}
-                className={`text-sm font-medium transition ${
-                  pathname === href.split("#")[0]
-                    ? "text-blue-600 dark:text-blue-400 underline underline-offset-4"
-                    : "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
-                }`}
-              >
-                {label}
-              </Link>
+              <NavigationMenuItem key={href}>
+                <Link href={href} legacyBehavior passHref>
+                  <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                    {label}
+                  </NavigationMenuLink>
+                </Link>
+              </NavigationMenuItem>
             ))}
-          </div>
+          </NavigationMenuList>
+        </NavigationMenu>
 
-          {/* Logo Center */}
-          <Link
-            href="/"
-            className="absolute right-1/2 translate-x-1/2 text-xl font-extrabold text-blue-600 dark:text-blue-400 tracking-tight select-none"
+        <div className="hidden md:flex items-center gap-3">
+          <ThemeToggler />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              const newLocale = locale === "en" ? "fa" : "en";
+              router.replace(`/${newLocale}${pathname}`);
+            }}
           >
-            ویتریتو
-          </Link>
-
-          {/* Left Menu (Desktop) */}
-          <div className="hidden md:flex items-center gap-3">
-            <ThemeToggler />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                const newLocale = locale === "en" ? "fa" : "en";
-                router.replace(`/${newLocale}${pathname}`);
-              }}
-            >
-              {locale === "en" ? "فارسی" : "English"}
-            </Button>
-            {session ? (
-              <>
-                <Link href="/dashboard">
-                  <Button variant="ghost" size="sm" className="text-sm">
-                    Dashboard
-                  </Button>
-                </Link>
-                <Button
-                  onClick={handleSignOut}
-                  variant="destructive"
-                  size="sm"
-                  className="text-sm"
-                >
-                  Sign Out
+            {locale === "en" ? "فارسی" : "English"}
+          </Button>
+          {session ? (
+            <>
+              <Link href="/dashboard">
+                <Button variant="ghost" size="sm" className="text-sm">
+                  Dashboard
                 </Button>
-              </>
-            ) : (
-              <>
-                <Link href="/login">
-                  <Button variant="ghost" size="sm" className="text-sm">
-                    ورود
-                  </Button>
-                </Link>
-                <Link href="/signup">
-                  <Button size="sm" className="text-sm">
-                    ساخت ویترین
-                  </Button>
-                </Link>
-              </>
-            )}
-          </div>
-
-          {/* Mobile Menu Toggle */}
-          <button
-            onClick={() => setMobileMenuOpen((prev) => !prev)}
-            className="md:hidden text-gray-700 dark:text-gray-200"
-          >
-            {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
-          </button>
+              </Link>
+              <Button
+                onClick={handleSignOut}
+                variant="destructive"
+                size="sm"
+                className="text-sm"
+              >
+                Sign Out
+              </Button>
+            </>
+          ) : (
+            <>
+              <Link href="/login">
+                <Button variant="ghost" size="sm" className="text-sm">
+                  ورود
+                </Button>
+              </Link>
+              <Link href="/signup">
+                <Button size="sm" className="text-sm">
+                  ساخت ویترین
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
 
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden mt-4 space-y-3">
-            {NAV_LINKS.map(({ href, label }) => (
-              <Link
-                key={href}
-                href={href}
-                onClick={() => setMobileMenuOpen(false)}
-                className={`block text-sm py-2 font-medium transition ${
-                  pathname === href.split("#")[0]
-                    ? "text-blue-600 dark:text-blue-400"
-                    : "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
-                }`}
-              >
-                {label}
-              </Link>
-            ))}
-            <div className="flex gap-3 pt-2">
-              {session ? (
-                <>
-                  <Link href="/dashboard" className="flex-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full text-sm"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Dashboard
-                    </Button>
-                  </Link>
-                  <Button
-                    onClick={() => {
-                      handleSignOut();
-                      setMobileMenuOpen(false);
-                    }}
-                    variant="destructive"
-                    size="sm"
-                    className="flex-1 text-sm"
+        {/* Mobile Navigation */}
+        <div className="md:hidden">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="icon">
+                <Menu className="h-6 w-6" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent>
+              <SheetHeader>
+                <SheetTitle>Menu</SheetTitle>
+              </SheetHeader>
+              <div className="grid gap-4 py-4">
+                {NAV_LINKS.map(({ href, label }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="text-lg font-medium"
                   >
-                    Sign Out
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Link href="/login" className="flex-1">
+                    {label}
+                  </Link>
+                ))}
+                <div className="flex flex-col gap-4 pt-4 border-t">
+                  {session ? (
+                    <>
+                      <Link href="/dashboard">
+                        <Button variant="ghost" className="w-full">
+                          Dashboard
+                        </Button>
+                      </Link>
+                      <Button
+                        onClick={handleSignOut}
+                        variant="destructive"
+                        className="w-full"
+                      >
+                        Sign Out
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Link href="/login">
+                        <Button variant="ghost" className="w-full">
+                          ورود
+                        </Button>
+                      </Link>
+                      <Link href="/signup">
+                        <Button className="w-full">ساخت ویترین</Button>
+                      </Link>
+                    </>
+                  )}
+                  <div className="flex justify-between items-center">
+                    <ThemeToggler />
                     <Button
                       variant="ghost"
-                      size="sm"
-                      className="w-full text-sm"
-                      onClick={() => setMobileMenuOpen(false)}
+                      onClick={() => {
+                        const newLocale = locale === "en" ? "fa" : "en";
+                        router.replace(`/${newLocale}${pathname}`);
+                      }}
                     >
-                      ورود
+                      {locale === "en" ? "فارسی" : "English"}
                     </Button>
-                  </Link>
-                  <Link href="/signup" className="flex-1">
-                    <Button
-                      size="sm"
-                      className="w-full text-sm"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      ساخت ویترین
-                    </Button>
-                  </Link>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-      </nav>
-    </div>
+                  </div>
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+      </header>
+    </motion.div>
   );
 }
