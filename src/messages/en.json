@@ -14,5 +14,11 @@
     "category_label": "Category",
     "price_label": "Price",
     "images_label": "Images"
+  },
+  "Home": {
+    "title": "Your Digital Showcase",
+    "description": "Easily showcase your business and connect with your customers.",
+    "start_now": "Start Now",
+    "view_examples": "View Examples"
   }
 }
