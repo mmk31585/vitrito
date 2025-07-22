@@ -1,4 +1,4 @@
-// src/app/layout.tsx
+// src/app/[locale]/layout.tsx
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import type { Metadata } from "next";
@@ -10,21 +10,23 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import "../styles/globals.css";
 
-// بارگذاری فونت‌های محلی
 const vazir = localFont({
   src: [
     {
-      path: "../fonts/Vazirmatn-Regular.woff2",
+      path: "../../fonts/Vazirmatn-Regular.woff2",
       weight: "400",
       style: "normal",
     },
-    { path: "../fonts/Vazirmatn-Bold.woff2", weight: "700", style: "normal" },
+    {
+      path: "../../fonts/Vazirmatn-Bold.woff2",
+      weight: "700",
+      style: "normal"
+    },
   ],
   variable: "--font-vazir",
   display: "swap",
 });
 
-// تنظیمات متا دیتا
 export const metadata: Metadata = {
   title: "ویتریتو | vitrito",
   description: "ساخت ویترین دیجیتال با ویتریتو",
@@ -32,38 +34,14 @@ export const metadata: Metadata = {
   icons: { icon: "/favicon.ico" },
 };
 
-// زبان‌های پشتیبانی شده و زبان پیش‌فرض
-const SUPPORTED_LOCALES = ["fa", "en"];
-const DEFAULT_LOCALE = "fa";
-
-// بارگذاری locale از context یا کوکی
-async function getLocaleFromRequest(
-  params?: Record<string, string | undefined>
-) {
-  let locale = params?.locale;
-  if (!locale || !SUPPORTED_LOCALES.includes(locale)) {
-    locale = DEFAULT_LOCALE;
-  }
-  return locale;
-}
-
 export default async function RootLayout({
   children,
-  params,
+  params: { locale },
 }: {
   children: React.ReactNode;
-  params?: Record<string, string | undefined>;
+  params: { locale: string };
 }) {
-  const locale = await getLocaleFromRequest(params);
-
-  // بارگذاری پیام‌ها
-  let messages;
-  try {
-    messages = await getMessages(locale);
-  } catch {
-    // اگر باز هم خطا داشت، پیام زبان پیش‌فرض را بارگذاری کن
-    messages = await getMessages(DEFAULT_LOCALE);
-  }
+  const messages = await getMessages();
 
   return (
     <html
