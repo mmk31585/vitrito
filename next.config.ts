@@ -7,10 +7,6 @@ const withNextIntl = nextIntl({
 
 const nextConfig = {
   reactStrictMode: true,
-  i18n: {
-    locales: ['en', 'fa'], // زبان‌های پشتیبانی شده
-    defaultLocale: 'fa',    // زبان پیش‌فرض
-  },
 };
 
 export default withNextIntl(nextConfig);
