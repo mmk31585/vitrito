@@ -1,4 +1,4 @@
-// src/app/[locale]/layout.tsx
+// src/layout.tsx
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import type { Metadata } from "next";
@@ -8,17 +8,17 @@ import { Toaster } from "react-hot-toast";
 import { PageTransition } from "@/components/PageTransition";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import "../styles/globals.css";
+import "./styles/globals.css";
 
 const vazir = localFont({
   src: [
     {
-      path: "../../fonts/Vazirmatn-Regular.woff2",
+      path: "../fonts/Vazirmatn-Regular.woff2",
       weight: "400",
       style: "normal",
     },
     {
-      path: "../../fonts/Vazirmatn-Bold.woff2",
+      path: "../fonts/Vazirmatn-Bold.woff2",
       weight: "700",
       style: "normal"
     },
