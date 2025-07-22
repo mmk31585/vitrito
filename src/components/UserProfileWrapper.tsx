@@ -10,6 +10,6 @@ const UserProfile = dynamic(
   }
 );
 
-export default function UserProfileWrapper() {
-  return <UserProfile />;
+export default function UserProfileWrapper({ username }: { username: string }) {
+  return <UserProfile username={username} />;
 }
