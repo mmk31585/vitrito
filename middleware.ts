@@ -6,5 +6,9 @@ export default createMiddleware({
 });
 
 export const config = {
-    matcher: ["/((?!api|_next|.*\\..*).*)"],
+    matcher: [
+        "/",
+        "/(fa|en)/:path*",
+        "/((?!_next/static|.*\\..*|_next/image|favicon.ico|sw.js|login|signup).*)",
+    ],
 };
