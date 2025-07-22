@@ -3,15 +3,14 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { Geist, Geist_Mono } from "next/font/google";
-
-import "../styles/globals.css";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "react-hot-toast";
 import { PageTransition } from "@/components/PageTransition";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import "../styles/globals.css";
 
+// بارگذاری فونت‌های محلی
 const vazir = localFont({
   src: [
     {
@@ -25,17 +24,7 @@ const vazir = localFont({
   display: "swap",
 });
 
-const geistSans = Geist({
-  subsets: ["latin"],
-  variable: "--font-geist-sans",
-  display: "swap",
-});
-const geistMono = Geist_Mono({
-  subsets: ["latin"],
-  variable: "--font-geist-mono",
-  display: "swap",
-});
-
+// تنظیمات متا دیتا
 export const metadata: Metadata = {
   title: "ویتریتو | vitrito",
   description: "ساخت ویترین دیجیتال با ویتریتو",
@@ -47,19 +36,27 @@ export const metadata: Metadata = {
 const SUPPORTED_LOCALES = ["fa", "en"];
 const DEFAULT_LOCALE = "fa";
 
+// بارگذاری locale از context یا کوکی
+async function getLocaleFromRequest(
+  params?: Record<string, string | undefined>
+) {
+  let locale = params?.locale;
+  if (!locale || !SUPPORTED_LOCALES.includes(locale)) {
+    locale = DEFAULT_LOCALE;
+  }
+  return locale;
+}
+
 export default async function RootLayout({
   children,
   params,
 }: {
   children: React.ReactNode;
-  params?: { locale?: string }; // توجه: optional کردیم
+  params?: Record<string, string | undefined>;
 }) {
-  // اگر locale موجود نیست یا پشتیبانی نشده، پیش‌فرض را بگذار
-  let locale = params?.locale;
-  if (!locale || !SUPPORTED_LOCALES.includes(locale)) {
-    locale = DEFAULT_LOCALE;
-  }
+  const locale = await getLocaleFromRequest(params);
 
+  // بارگذاری پیام‌ها
   let messages;
   try {
     messages = await getMessages(locale);
@@ -72,7 +69,7 @@ export default async function RootLayout({
     <html
       lang={locale}
       dir={locale === "fa" ? "rtl" : "ltr"}
-      className={`${vazir.variable} ${geistSans.variable} ${geistMono.variable} scroll-smooth`}
+      className={`${vazir.variable} scroll-smooth`}
     >
       <body className="flex flex-col min-h-screen bg-background text-foreground antialiased">
         <NextIntlClientProvider locale={locale} messages={messages}>
